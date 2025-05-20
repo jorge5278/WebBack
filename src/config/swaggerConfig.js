@@ -48,7 +48,7 @@ const options = {
     },
     servers: [
       {
-        url: process.env.SERVER_URL,    
+        url: process.env.SERVER_URL,    // p.ej. https://webback-production-7057.up.railway.app/api
         description: 'Backend en Railway'
       }
     ]

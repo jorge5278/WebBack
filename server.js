@@ -7,13 +7,18 @@ import setupSwagger from './src/config/swaggerConfig.js';
 
 const app = express();
 
+// CORS: solo permitimos tu front en Vercel
 app.use(cors({
   origin: process.env.CLIENT_URL,
   credentials: true
 }));
-app.use(express.json());
 
+app.use(express.json());
 app.use(morgan('dev'));
+
+app.get('/', (_, res) => {
+  res.send('API funcionando');
+});
 
 setupSwagger(app);
 
