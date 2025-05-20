@@ -24,10 +24,10 @@ const options = {
         Usuario: {
           type: 'object',
           properties: {
-            id:       { type: 'integer' },
-            nombre:   { type: 'string'  },
-            email:    { type: 'string'  },
-            rol:      { type: 'string'  }
+            id:     { type: 'integer' },
+            nombre: { type: 'string'  },
+            email:  { type: 'string'  },
+            rol:    { type: 'string'  }
           }
         },
         Credenciales: {
@@ -36,7 +36,7 @@ const options = {
             email:    { type: 'string' },
             password: { type: 'string' }
           },
-          required: ['email','password']
+          required: ['email', 'password']
         },
         Token: {
           type: 'object',
@@ -48,12 +48,15 @@ const options = {
     },
     servers: [
       {
-        url: process.env.SERVER_URL || 'http://localhost:3000/api',
-        description: 'Servidor local'
+        url: process.env.SERVER_URL,    
+        description: 'Backend en Railway'
       }
     ]
   },
-  apis: ['./src/routes/*.js', './src/controllers/*.js']
+  apis: [
+    './src/routes/*.js',
+    './src/controllers/*.js'
+  ]
 };
 
 const specs = swaggerJsdoc(options);
