@@ -2,10 +2,7 @@ name: Backend CI/CD
 
 on:
   push:
-    branches:
-      - main
-    paths:
-      - 'server/**'
+    branches: [ main ]
   workflow_dispatch:
 
 env:
@@ -19,10 +16,6 @@ jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
 
-    defaults:
-      run:
-        working-directory: ./server
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -35,9 +28,11 @@ jobs:
           cache-dependency-path: server/package-lock.json
 
       - name: Install dependencies
+        working-directory: server
         run: npm ci
 
       - name: Build (opcional)
+        working-directory: server
         run: npm run build || echo "No hay paso de build"
 
       - name: Azure CLI Login
@@ -50,6 +45,6 @@ jobs:
       - name: Deploy to Azure Web App
         uses: azure/webapps-deploy@v2
         with:
-          app-name: ${{ secrets.AZURE_APP_NAME }}   # e.g. my-app-backend-jorge
-          resource-group: web                       # tu resource group
-          package: .
+          app-name: ${{ secrets.AZURE_APP_NAME }}
+          resource-group: web
+          package: server
