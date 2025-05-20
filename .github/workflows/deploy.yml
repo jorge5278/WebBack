@@ -1,0 +1,25 @@
+name: Deploy yo Railway
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout codigo
+        uses: actions/checkout@v3
+
+      - name: Instalar Node
+        uses: actions/setup-node@v3
+        with:
+          node-version: "18"
+
+      - name: instalar dependencias
+        run: npm install
+
+      - name: Build (opcional)
+        run: npm run build || echo "No build necesario"
