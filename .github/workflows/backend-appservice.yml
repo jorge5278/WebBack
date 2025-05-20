@@ -1,53 +1,55 @@
-name: todo backend CI/CD
+name: Backend CI/CD
 
 on:
   push:
-    branches: [ "main" ]
+    branches:
+      - main
     paths:
-      - ".github/workflows/backend-appservice.yml"
+      - 'server/**'
   workflow_dispatch:
 
 env:
-  NODE_VERSION: '20.x'                # set this to the node version to use
+  NODE_VERSION: '18.x'
 
 permissions:
   contents: read
-  id-token: write # For azure login
+  id-token: write
 
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
-    environment: 
-      name: Production
-      url: ${{steps.deploy-to-webapp.outputs.webapp-url}}
-      
-    defaults: 
+
+    defaults:
       run:
-        working-directory: ./NodeJS/github-actions/react-express/api
+        working-directory: ./server
+
     steps:
-    - uses: actions/checkout@v4
-    
-    - name: Set up Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: ${{ env.NODE_VERSION }}
-        cache: 'npm'
-        cache-dependency-path: ./NodeJS/github-actions/react-express/api/package-lock.json
-    
-    - name: npm install, build, and test
-      run: |
-        npm install
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-    - name: Azure CLI Login
-      uses: azure/login@v2
-      with:
-        client-id: ${{ secrets.AZURE_CLIENT_ID }}
-        tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-        subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      - name: Use Node.js ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: server/package-lock.json
 
-    - name: 'Deploy to Azure WebApp'
-      id: deploy-to-webapp
-      uses: azure/webapps-deploy@v2
-      with:
-        app-name: todo-app-bkend
-        package: ./NodeJS/github-actions/react-express/api
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build (opcional)
+        run: npm run build || echo "No hay paso de build"
+
+      - name: Azure CLI Login
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Deploy to Azure Web App
+        uses: azure/webapps-deploy@v2
+        with:
+          app-name: ${{ secrets.AZURE_APP_NAME }}   # e.g. my-app-backend-jorge
+          resource-group: web                       # tu resource group
+          package: .
