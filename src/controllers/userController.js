@@ -1,18 +1,23 @@
-
+// src/controllers/userController.js
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
-import pool from "../config/dbConfig.js";
+import { sql, poolPromise } from "../config/dbConfig.js";
 
 // Obtener todos los usuarios
 export const getUsers = async (req, res) => {
   try {
-    const result = await pool.query(
-      'SELECT id, nombre, email, rol FROM usuarios ORDER BY id'
-    );
-    res.json(result.rows);
+    const pool = await poolPromise;
+    const result = await pool
+      .request()
+      .query(
+        `SELECT id, nombre, email, rol
+         FROM dbo.UsersJorge
+         ORDER BY id`
+      );
+    res.json(result.recordset);
   } catch (err) {
-    console.error('Error al obtener usuarios:', err);
-    res.status(500).json({ message: 'Error interno al listar usuarios' });
+    console.error("Error al obtener usuarios:", err);
+    res.status(500).json({ message: "Error interno al listar usuarios" });
   }
 };
 
@@ -20,17 +25,23 @@ export const getUsers = async (req, res) => {
 export const getUserById = async (req, res) => {
   const { id } = req.params;
   try {
-    const result = await pool.query(
-      'SELECT id, nombre, email, rol FROM usuarios WHERE id = $1',
-      [id]
-    );
-    if (result.rows.length === 0) {
-      return res.status(404).json({ message: 'Usuario no encontrado' });
+    const pool = await poolPromise;
+    const result = await pool
+      .request()
+      .input("id", sql.Int, id)
+      .query(
+        `SELECT id, nombre, email, rol
+         FROM dbo.UsersJorge
+         WHERE id = @id`
+      );
+
+    if (result.recordset.length === 0) {
+      return res.status(404).json({ message: "Usuario no encontrado" });
     }
-    res.json(result.rows[0]);
+    res.json(result.recordset[0]);
   } catch (err) {
-    console.error('Error al obtener usuario:', err);
-    res.status(500).json({ message: 'Error interno al obtener usuario' });
+    console.error("Error al obtener usuario:", err);
+    res.status(500).json({ message: "Error interno al obtener usuario" });
   }
 };
 
@@ -42,16 +53,27 @@ export const createUser = async (req, res) => {
     const salt = await bcrypt.genSalt(10);
     const hashedPass = await bcrypt.hash(password, salt);
 
-    const result = await pool.query(
-      `INSERT INTO usuarios (nombre, email, password, rol)
-       VALUES ($1, $2, $3, $4)
-       RETURNING id, nombre, email, rol`,
-      [nombre, email, hashedPass, rol]
-    );
-    res.status(201).json(result.rows[0]);
+    const pool = await poolPromise;
+    const result = await pool
+      .request()
+      .input("nombre", sql.VarChar(255), nombre)
+      .input("email", sql.VarChar(255), email)
+      .input("password", sql.VarChar(255), hashedPass)
+      .input("rol", sql.VarChar(50), rol)
+      .query(`
+        INSERT INTO dbo.UsersJorge (nombre, email, password, rol)
+        VALUES (@nombre, @email, @password, @rol);
+        SELECT
+          CAST(SCOPE_IDENTITY() AS INT) AS id,
+          @nombre    AS nombre,
+          @email     AS email,
+          @rol       AS rol;
+      `);
+
+    res.status(201).json(result.recordset[0]);
   } catch (err) {
-    console.error('Error al crear usuario:', err);
-    res.status(500).json({ message: 'Error interno al crear usuario' });
+    console.error("Error al crear usuario:", err);
+    res.status(500).json({ message: "Error interno al crear usuario" });
   }
 };
 
@@ -60,34 +82,50 @@ export const updateUser = async (req, res) => {
   const { id } = req.params;
   const { nombre, email, password, rol } = req.body;
   try {
-    let query, params;
+    const pool = await poolPromise;
+    let request = pool.request()
+      .input("id", sql.Int, id)
+      .input("nombre", sql.VarChar(255), nombre)
+      .input("email", sql.VarChar(255), email)
+      .input("rol", sql.VarChar(50), rol);
+
+    let query;
     if (password) {
       const salt = await bcrypt.genSalt(10);
       const hashedPass = await bcrypt.hash(password, salt);
+      request = request.input("password", sql.VarChar(255), hashedPass);
       query = `
-        UPDATE usuarios
-        SET nombre=$1, email=$2, password=$3, rol=$4
-        WHERE id=$5
-        RETURNING id, nombre, email, rol
+        UPDATE dbo.UsersJorge
+        SET nombre = @nombre,
+            email = @email,
+            password = @password,
+            rol = @rol
+        WHERE id = @id;
+        SELECT id, nombre, email, rol
+        FROM dbo.UsersJorge
+        WHERE id = @id;
       `;
-      params = [nombre, email, hashedPass, rol, id];
     } else {
       query = `
-        UPDATE usuarios
-        SET nombre=$1, email=$2, rol=$3
-        WHERE id=$4
-        RETURNING id, nombre, email, rol
+        UPDATE dbo.UsersJorge
+        SET nombre = @nombre,
+            email = @email,
+            rol = @rol
+        WHERE id = @id;
+        SELECT id, nombre, email, rol
+        FROM dbo.UsersJorge
+        WHERE id = @id;
       `;
-      params = [nombre, email, rol, id];
     }
-    const result = await pool.query(query, params);
-    if (result.rows.length === 0) {
-      return res.status(404).json({ message: 'Usuario no encontrado' });
+
+    const result = await request.query(query);
+    if (result.recordset.length === 0) {
+      return res.status(404).json({ message: "Usuario no encontrado" });
     }
-    res.json(result.rows[0]);
+    res.json(result.recordset[0]);
   } catch (err) {
-    console.error('Error al actualizar usuario:', err);
-    res.status(500).json({ message: 'Error interno al actualizar usuario' });
+    console.error("Error al actualizar usuario:", err);
+    res.status(500).json({ message: "Error interno al actualizar usuario" });
   }
 };
 
@@ -95,17 +133,23 @@ export const updateUser = async (req, res) => {
 export const deleteUser = async (req, res) => {
   const { id } = req.params;
   try {
-    const result = await pool.query(
-      'DELETE FROM usuarios WHERE id=$1 RETURNING id',
-      [id]
-    );
-    if (result.rows.length === 0) {
-      return res.status(404).json({ message: 'Usuario no encontrado' });
+    const pool = await poolPromise;
+    const result = await pool
+      .request()
+      .input("id", sql.Int, id)
+      .query(`
+        DELETE FROM dbo.UsersJorge
+        WHERE id = @id;
+        SELECT @id AS id;
+      `);
+
+    if (result.recordset.length === 0) {
+      return res.status(404).json({ message: "Usuario no encontrado" });
     }
-    res.json({ message: 'Usuario eliminado correctamente' });
+    res.json({ message: "Usuario eliminado correctamente" });
   } catch (err) {
-    console.error('Error al eliminar usuario:', err);
-    res.status(500).json({ message: 'Error interno al eliminar usuario' });
+    console.error("Error al eliminar usuario:", err);
+    res.status(500).json({ message: "Error interno al eliminar usuario" });
   }
 };
 
@@ -113,29 +157,35 @@ export const deleteUser = async (req, res) => {
 export const loginUser = async (req, res) => {
   const { email, password } = req.body;
   try {
-    const result = await pool.query(
-      'SELECT id, nombre, email, password FROM usuarios WHERE email = $1',
-      [email]
-    );
-    if (result.rows.length === 0) {
-      return res.status(401).json({ message: 'Credenciales incorrectas' });
-    }
-    const user = result.rows[0];
+    const pool = await poolPromise;
+    const result = await pool
+      .request()
+      .input("email", sql.VarChar(255), email)
+      .query(`
+        SELECT id, nombre, email, password, rol
+        FROM dbo.UsersJorge
+        WHERE email = @email
+      `);
 
+    if (result.recordset.length === 0) {
+      return res.status(401).json({ message: "Credenciales incorrectas" });
+    }
+
+    const user = result.recordset[0];
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
-      return res.status(401).json({ message: 'Credenciales incorrectas' });
+      return res.status(401).json({ message: "Credenciales incorrectas" });
     }
 
     // Generar JWT
     const token = jwt.sign(
       { id: user.id, email: user.email, rol: user.rol },
       process.env.JWT_SECRET,
-      { expiresIn: '1h' }
+      { expiresIn: "1h" }
     );
     res.json({ token });
   } catch (err) {
-    console.error('Error en login:', err);
-    res.status(500).json({ message: 'Error interno al autenticar' });
+    console.error("Error en login:", err);
+    res.status(500).json({ message: "Error interno al autenticar" });
   }
 };

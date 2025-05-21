@@ -1,15 +1,33 @@
-import { Pool } from 'pg';
-import dotenv from 'dotenv';
+// src/config/dbConfig.js
+import sql from "mssql";
+import dotenv from "dotenv";
 
 dotenv.config();
 
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: { rejectUnauthorized: false }
-});
+const config = {
+  server:   process.env.DB_SERVER,
+  database: process.env.DB_NAME,
+  user:     process.env.DB_USER,
+  password: process.env.DB_PASSWORD,
+  options: {
+    encrypt: true,            // para Azure
+    trustServerCertificate: false
+  },
+  pool: {
+    max: 10,
+    min: 0,
+    idleTimeoutMillis: 30000
+  }
+};
 
-// Export a promise-like interface for compatibility
-const poolPromise = Promise.resolve(pool);
+const poolPromise = sql.connect(config)
+  .then(pool => {
+    console.log("Conectado a Azure SQL");
+    return pool;
+  })
+  .catch(err => {
+    console.error("Error al conectar a Azure SQL:", err);
+    throw err;
+  });
 
-export default pool;
-export { poolPromise };
+export { sql, poolPromise };
