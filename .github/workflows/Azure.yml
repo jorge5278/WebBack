@@ -1,0 +1,43 @@
+name: Deploy Backend to Azure Web App
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. Clonar el código
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      # 2. Instalar Node.js
+      - name: Setup Node.js
+        uses: actions/setup-node@v2
+        with:
+          node-version: '18.x'   # o la versión que uses
+
+      # 3. Instalar dependencias
+      - name: Install dependencies
+        run: npm ci
+        working-directory: ./server  # ajusta si tu backend no está en /server
+
+      # 4. (Opcional) ejecutar tests o linters
+      #- name: Lint code
+      #  run: npm run lint
+      #  working-directory: ./server
+
+      #- name: Run unit tests
+      #  run: npm test
+      #  working-directory: ./server
+
+      # 5. Desplegar con el Publish Profile
+      - name: Deploy to Azure Web App
+        uses: azure/webapps-deploy@v2
+        with:
+          app-name: 'viba'                         # nombre de tu App Service
+          publish-profile: ${{ secrets.AZURE_PUBLISH_PROFILE }}
+          package: './server'                      # carpeta de tu backend
