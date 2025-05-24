@@ -8,6 +8,9 @@ jobs:
   deploy-backend:
     runs-on: ubuntu-latest
     env:
+      # Deben estar en Repository Secrets:
+      # AZURE_WEBAPP_BACKEND_NAME = viba      (sin .azurewebsites.net)
+      # AZURE_WEBAPP_BACKEND_PUBLISH_PROFILE = $ViBA:4xmvDo5aGndQBqgQW7ry…
       AZURE_WEBAPP_BACKEND_NAME:        ${{ secrets.AZURE_WEBAPP_BACKEND_NAME }}
       AZURE_WEBAPP_BACKEND_PUBLISH_PROFILE: ${{ secrets.AZURE_WEBAPP_BACKEND_PUBLISH_PROFILE }}
 
@@ -30,13 +33,15 @@ jobs:
 
       - name: Clean Azure wwwroot via Kudu
         run: |
-          curl -X POST "https://${{ env.AZURE_WEBAPP_BACKEND_NAME }}.scm.azurewebsites.net/api/command" \
-            -u '${{ env.AZURE_WEBAPP_BACKEND_PUBLISH_PROFILE }}' \
+          echo "Cleaning https://$AZURE_WEBAPP_BACKEND_NAME.scm.azurewebsites.net/api/command"
+          curl -v -X POST "https://$AZURE_WEBAPP_BACKEND_NAME.scm.azurewebsites.net/api/command" \
+            -u "$AZURE_WEBAPP_BACKEND_PUBLISH_PROFILE" \
             -H "Content-Type: application/json" \
             --data '{"command":"rm -rf /home/site/wwwroot/*"}'
 
       - name: Deploy to Azure via ZIP Deploy
         run: |
-          curl -X POST "https://${{ env.AZURE_WEBAPP_BACKEND_NAME }}.scm.azurewebsites.net/api/zipdeploy" \
-            -u '${{ env.AZURE_WEBAPP_BACKEND_PUBLISH_PROFILE }}' \
+          echo "Deploying to https://$AZURE_WEBAPP_BACKEND_NAME.scm.azurewebsites.net/api/zipdeploy"
+          curl -v -X POST "https://$AZURE_WEBAPP_BACKEND_NAME.scm.azurewebsites.net/api/zipdeploy" \
+            -u "$AZURE_WEBAPP_BACKEND_PUBLISH_PROFILE" \
             --data-binary @backend.zip
