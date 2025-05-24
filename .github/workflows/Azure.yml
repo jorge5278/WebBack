@@ -30,13 +30,13 @@ jobs:
 
       - name: Clean Azure wwwroot via Kudu
         run: |
-          curl -X POST "https://${AZURE_WEBAPP_BACKEND_NAME}/api/command" \
-            -u "${AZURE_WEBAPP_BACKEND_PUBLISH_PROFILE}" \
+          curl -X POST "https://${{ secrets.AZURE_WEBAPP_BACKEND_NAME }}/api/command" \
+            -u "${{ secrets.AZURE_WEBAPP_BACKEND_PUBLISH_PROFILE }}" \
             -H "Content-Type: application/json" \
             --data '{"command":"rm -rf /home/site/wwwroot/*"}'
 
       - name: Deploy to Azure via ZIP Deploy
         run: |
-          curl -X POST "https://${AZURE_WEBAPP_BACKEND_NAME}/api/zipdeploy" \
-            -u "${AZURE_WEBAPP_BACKEND_PUBLISH_PROFILE}" \
+          curl -X POST "https://${{ secrets.AZURE_WEBAPP_BACKEND_NAME }}/api/zipdeploy" \
+            -u "${{ secrets.AZURE_WEBAPP_BACKEND_PUBLISH_PROFILE }}" \
             --data-binary @backend.zip
