@@ -1,34 +1,43 @@
-name: Deploy Backend to Azure Web App
+name: Clean & Deploy Backend to Azure Web App
 
 on:
   push:
-    branches:
-      - main
+    branches: [ main ]
 
 jobs:
-  build-and-deploy:
+  deploy-backend:
     runs-on: ubuntu-latest
+    env:
+      AZURE_WEBAPP_BACKEND_NAME:       ${{ secrets.AZURE_WEBAPP_BACKEND_NAME }}
+      AZURE_WEBAPP_BACKEND_PUBLISH_PROFILE: ${{ secrets.AZURE_WEBAPP_BACKEND_PUBLISH_PROFILE }}
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v2
+      - uses: actions/checkout@v3
 
       - name: Setup Node.js
-        uses: actions/setup-node@v2
+        uses: actions/setup-node@v3
         with:
           node-version: '18.x'
 
       - name: Install dependencies
         run: npm ci
-        # (se ejecuta en la raíz de tu proyecto)
+        working-directory: ./WebBack
 
-      # (Opcional) Si usas un build step:
-      # - name: Build project
-      #   run: npm run build
+      - name: Zip backend
+        working-directory: ./WebBack
+        run: |
+          rm -f backend.zip
+          zip -r backend.zip . -x "node_modules/*" ".env" "tests/*"
 
-      - name: Deploy to Azure Web App
-        uses: azure/webapps-deploy@v2
-        with:
-          app-name: 'viba'                         # tu App Service name
-          publish-profile: ${{ secrets.AZURE_PUBLISH_PROFILE }}
-          package: '.'                             # ruta al root de tu backend
+      - name: Clean Azure wwwroot
+        run: |
+          curl -X POST "https://${AZURE_WEBAPP_BACKEND_NAME}/api/command" \
+            -u "${AZURE_WEBAPP_BACKEND_PUBLISH_PROFILE}" \
+            -H "Content-Type: application/json" \
+            --data '{"command":"rm -rf /home/site/wwwroot/*"}'
+
+      - name: Deploy to Azure via ZIP Deploy
+        run: |
+          curl -X POST "https://${AZURE_WEBAPP_BACKEND_NAME}/api/zipdeploy" \
+            -u "${AZURE_WEBAPP_BACKEND_PUBLISH_PROFILE}" \
+            --data-binary @backend.zip
