@@ -12,7 +12,8 @@ jobs:
       AZURE_WEBAPP_BACKEND_PUBLISH_PROFILE: ${{ secrets.AZURE_WEBAPP_BACKEND_PUBLISH_PROFILE }}
 
     steps:
-      - uses: actions/checkout@v3
+      - name: Checkout repository
+        uses: actions/checkout@v3
 
       - name: Setup Node.js
         uses: actions/setup-node@v3
@@ -21,15 +22,13 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
-        working-directory: ./WebBack
 
       - name: Zip backend
-        working-directory: ./WebBack
         run: |
           rm -f backend.zip
           zip -r backend.zip . -x "node_modules/*" ".env" "tests/*"
 
-      - name: Clean Azure wwwroot
+      - name: Clean Azure wwwroot via Kudu
         run: |
           curl -X POST "https://${AZURE_WEBAPP_BACKEND_NAME}/api/command" \
             -u "${AZURE_WEBAPP_BACKEND_PUBLISH_PROFILE}" \
