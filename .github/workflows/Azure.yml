@@ -33,15 +33,23 @@ jobs:
 
       - name: Clean Azure wwwroot via Kudu
         run: |
-          echo "Cleaning https://$AZURE_WEBAPP_BACKEND_NAME.scm.azurewebsites.net/api/command"
-          curl -v -X POST "https://$AZURE_WEBAPP_BACKEND_NAME.scm.azurewebsites.net/api/command" \
-            -u "$AZURE_WEBAPP_BACKEND_PUBLISH_PROFILE" \
+          # Saneamos las vars para quitar saltos de línea o espacios
+          NAME="$(echo -n "$AZURE_WEBAPP_BACKEND_NAME")"
+          CREDS="$(echo -n "$AZURE_WEBAPP_BACKEND_PUBLISH_PROFILE")"
+
+          URL="https://$NAME.scm.azurewebsites.net/api/command"
+          echo "Cleaning $URL"
+          curl -v -X POST "$URL" \
+            -u "$CREDS" \
             -H "Content-Type: application/json" \
             --data '{"command":"rm -rf /home/site/wwwroot/*"}'
 
       - name: Deploy to Azure via ZIP Deploy
         run: |
-          echo "Deploying to https://$AZURE_WEBAPP_BACKEND_NAME.scm.azurewebsites.net/api/zipdeploy"
-          curl -v -X POST "https://$AZURE_WEBAPP_BACKEND_NAME.scm.azurewebsites.net/api/zipdeploy" \
-            -u "$AZURE_WEBAPP_BACKEND_PUBLISH_PROFILE" \
+          # Reutilizamos las mismas vars saneadas
+          URL="https://$NAME.scm.azurewebsites.net/api/zipdeploy"
+          echo "Deploying to $URL"
+          curl -v -X POST "$URL" \
+            -u "$CREDS" \
             --data-binary @backend.zip
+
