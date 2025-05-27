@@ -12,7 +12,16 @@ const allowedOrigins = (process.env.CLIENT_URL || '')
   .split(',')
   .map(o => o.trim());
 
-app.use(cors());
+app.use(cors({
+  origin: function (origin, callback) {
+    // allow requests with no origin (like mobile apps or curl)
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+    return callback(new Error('Not allowed by CORS policy'));
+  }
+}));
 app.use(express.json());
 app.use(morgan('dev'));
 

@@ -20,7 +20,12 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
-        # (se ejecuta en la raíz de tu proyecto)
+
+      - name: Lint code
+        run: npm run lint
+
+      - name: Run tests
+        run: npm test
 
       # (Opcional) Si usas un build step:
       # - name: Build project
