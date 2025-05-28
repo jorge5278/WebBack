@@ -1,6 +1,6 @@
-const jwt = require('jsonwebtoken');
+import jwt from 'jsonwebtoken';
 
-function authenticateToken(req, res, next) {
+export function authenticateToken(req, res, next) {
   const token = req.header('Authorization');
   if (!token) {
     return res.status(403).json({ message: "Acceso denegado, token requerido" });
@@ -14,5 +14,3 @@ function authenticateToken(req, res, next) {
     res.status(401).json({ message: "Token inválido" });
   }
 }
-
-module.exports = { authenticateToken };

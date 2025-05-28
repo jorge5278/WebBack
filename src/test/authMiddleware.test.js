@@ -1,6 +1,6 @@
 // src/test/authMiddleware.test.js
-const { authenticateToken } = require('../middleware/authMiddleware.js');
-const jwt = require('jsonwebtoken');
+import { authenticateToken } from '../middleware/authMiddleware.js';
+import jwt from 'jsonwebtoken';
 
 describe('authenticateToken middleware', () => {
   let req, res, next;
