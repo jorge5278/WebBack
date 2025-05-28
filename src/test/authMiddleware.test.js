@@ -1,4 +1,5 @@
 // src/test/authMiddleware.test.js
+import { jest, describe, it, expect, beforeEach } from '@jest/globals';
 import { authenticateToken } from '../middleware/authMiddleware.js';
 import jwt from 'jsonwebtoken';
 
