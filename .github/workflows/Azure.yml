@@ -27,7 +27,7 @@ jobs:
       - name: Run tests
         run: npm test
 
-      # (Opcional) Si usas un build step:
+
       # - name: Build project
       #   run: npm run build
 
